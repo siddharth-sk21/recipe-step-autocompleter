@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import random
 from collections import Counter, defaultdict
 from typing import Iterable, Sequence
 
@@ -117,6 +118,44 @@ class NGramModel:
         ]
         return sorted(candidates, key=lambda item: (-item[1], item[0]))[:limit]
 
+    def generate(
+        self,
+        prefix: str = "",
+        max_words: int = 10,
+        *,
+        sample: bool = False,
+        seed: int | None = None,
+    ) -> str:
+        """Generate a continuation by choosing smoothed next words."""
+        if max_words < 1:
+            raise ValueError("max_words must be at least 1")
+
+        result = tokenize(prefix)
+        rng = random.Random(seed)
+
+        for _ in range(max_words):
+            context = result[-(self.n - 1):] if self.n > 1 else []
+            options = [
+                (word, self.probability(word, context))
+                for word in sorted([*self.vocabulary, "</s>"])
+            ]
+
+            if sample:
+                words = [word for word, _ in options]
+                weights = [probability for _, probability in options]
+                next_word = rng.choices(words, weights=weights, k=1)[0]
+            else:
+                next_word = max(
+                    options,
+                    key=lambda item: (item[1], item[0]),
+                )[0]
+
+            if next_word == "</s>":
+                break
+            result.append(next_word)
+
+        return " ".join(result)
+
 
 def milestone_2(
     corpus: Iterable[Sequence[str]] | None = None,
@@ -126,3 +165,21 @@ def milestone_2(
     """Build an n-gram model from the compiled recipe corpus."""
     source = corpus if corpus is not None else milestone_1()
     return NGramModel(source, n=n, alpha=alpha)
+
+
+def milestone_3(
+    prefix: str = "",
+    max_words: int = 10,
+    *,
+    sample: bool = False,
+    seed: int | None = None,
+    model: NGramModel | None = None,
+) -> str:
+    """Generate a recipe-step continuation from a partial instruction."""
+    active_model = model if model is not None else milestone_2()
+    return active_model.generate(
+        prefix,
+        max_words=max_words,
+        sample=sample,
+        seed=seed,
+    )

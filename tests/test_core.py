@@ -5,6 +5,7 @@ from app.core import (
     compile_corpus,
     milestone_1,
     milestone_2,
+    milestone_3,
     tokenize,
 )
 
@@ -48,3 +49,39 @@ def test_milestone_2_returns_ranked_predictions():
 def test_milestone_2_rejects_invalid_model_settings(kwargs):
     with pytest.raises(ValueError):
         NGramModel([["add", "salt"]], **kwargs)
+
+
+def test_milestone_3_generates_a_deterministic_continuation():
+    model = milestone_2([["add", "salt"], ["add", "pepper"]], n=2)
+
+    continuation = milestone_3(
+        "add",
+        max_words=2,
+        model=model,
+    )
+
+    assert continuation.startswith("add ")
+    assert len(continuation.split()) <= 3
+
+
+def test_milestone_3_sampling_is_repeatable_with_a_seed():
+    model = milestone_2(
+        [
+            ["heat", "oil"],
+            ["heat", "oil"],
+            ["heat", "water"],
+        ],
+        n=2,
+    )
+
+    first = milestone_3("heat", max_words=3, sample=True, seed=42, model=model)
+    second = milestone_3("heat", max_words=3, sample=True, seed=42, model=model)
+
+    assert first == second
+
+
+def test_milestone_3_rejects_invalid_word_limits():
+    model = milestone_2([["add", "salt"]], n=2)
+
+    with pytest.raises(ValueError):
+        milestone_3("add", max_words=0, model=model)
