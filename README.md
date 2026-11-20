@@ -14,7 +14,7 @@ The Recipe Step Autocompleter is a command-line tool designed for home cooks. It
 
 Tick these off as you go, and commit after each one.
 
-- [ ] **1. Compile a corpus of cooking recipe instructions.**  
+- [x] **1. Compile a corpus of cooking recipe instructions.**
       Hint: Use text preprocessing techniques to clean and prepare your recipe data.
 - [ ] **2. Implement n-gram counting and maximum-likelihood probabilities with smoothing.**  
       Hint: Apply n-gram counting and maximum-likelihood estimation from the drill.
@@ -35,8 +35,8 @@ python -m app.cli hello
 pytest
 ```
 
-Your work goes in `app/core.py` (one stub per milestone) and `tests/test_core.py`. The first tests pass already; they
-check the plumbing.
+Milestone 1 is implemented in `app/core.py` with a built-in starter corpus. The preprocessing step lowercases
+instructions, extracts word tokens, removes punctuation, and discards empty instructions.
 
 ## Settings and secrets
 
