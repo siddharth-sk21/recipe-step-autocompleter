@@ -178,6 +178,99 @@ Run only the core model tests:
 python -m pytest tests/test_core.py -q
 ```
 
+## Results and Evaluation
+
+### Methodology
+
+The built-in corpus currently contains 37 instructions. Evaluation uses a fixed random seed of `42` and an 80/20 instruction-level split:
+
+- Training instructions: 29
+- Held-out test instructions: 8
+- Test next-word examples: 61
+- Smoothing: add-alpha with `alpha = 1.0`
+- Reproducibility: fixed split seed and fixed corpus
+
+No held-out instruction is included in training. Models use the same training and test split, and top-k metrics count the true next word among the highest-ranked training-vocabulary candidates. Perplexity is calculated as `exp(mean negative log probability)` over held-out `(context, next word)` examples, including the `</s>` end marker.
+
+Run the evaluation locally:
+
+```powershell
+python -m app.evaluation
+```
+
+This writes:
+
+- [results/evaluation.csv](results/evaluation.csv)
+- [results/evaluation.json](results/evaluation.json)
+
+### Measured Model Comparison
+
+| Model | Top-1 accuracy | Top-5 accuracy | Perplexity | Test examples |
+|---|---:|---:|---:|---:|
+| Unigram | 14.75% | 36.07% | 79.24 | 61 |
+| Bigram | 16.39% | 36.07% | 70.13 | 61 |
+| Trigram | 16.39% | 36.07% | 71.19 | 61 |
+
+The bigram model has the lowest perplexity and is therefore the strongest simple model on this held-out split. The bigram and trigram models tie for top-1 accuracy and top-5 accuracy. Trigram perplexity is slightly worse than bigram perplexity because the corpus is small and longer contexts are frequently unseen, so the trigram implementation backs off more often.
+
+Compared with the unigram baseline, the bigram model improves top-1 accuracy from 14.75% to 16.39% and reduces perplexity from 79.24 to 70.13. This demonstrates that neighboring-word context provides useful predictive information, while the small corpus prevents a large performance gap.
+
+### Representative CLI Results
+
+Next-word suggestions:
+
+```text
+eggs        0.0156
+onions      0.0156
+stock       0.0156
+350         0.0078
+a           0.0078
+```
+
+Greedy generation:
+
+```text
+stir in the garlic and cook until soft
+```
+
+Seeded sampling:
+
+```text
+add the pot a directions cool sauce reduce through boil hours a
+```
+
+Interactive completion:
+
+```text
+Current step: add the
+1. eggs (0.0156)
+2. onions (0.0156)
+3. stock (0.0156)
+Current step: add the eggs
+1. and (0.0157)
+2. with (0.0157)
+3. 350 (0.0079)
+Final step: add the eggs and
+```
+
+Commands used:
+
+```powershell
+python -m app.cli suggest "add the" --count 5
+python -m app.cli generate "stir in" --count 10
+python -m app.cli generate "add the" --count 10 --sample --seed 42
+python -m app.cli complete "add the" --count 3 --steps 2 --choose 1
+```
+
+### Evaluation Limitations
+
+- The corpus is a small demonstration set of 37 instructions, not a representative recipe dataset.
+- The held-out test set contains only eight instructions and 61 next-word decisions.
+- Repeated patterns and common words dominate the metrics.
+- A stronger trigram result would require substantially more and more varied recipe instructions.
+- Seeded sampling can produce less coherent output than greedy generation because it samples from smoothed probabilities.
+- The end result is therefore a reproducible educational comparison, not a production recipe-language benchmark.
+
 ## Troubleshooting
 
 ### `python` opens a different Python version
