@@ -25,31 +25,71 @@ Tick these off as you go, and commit after each one.
 
 ## Run it
 
-You need Python 3.12 and git.
+You need Python 3.12 and Git.
+
+### Windows PowerShell
+
+```powershell
+cd D:\recipe-step-autocompleter
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+python -m app.cli hello
+python -m pytest -q
+```
+
+If your shell blocks activation, allow it only for the current process:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+### macOS or Linux
 
 ```bash
-python3.12 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # then choose a model; see the comments inside
+cp .env.example .env
 python -m app.cli hello
 pytest
 ```
 
-To show ranked next-word suggestions:
+## Commands
 
-```bash
+Show ranked next-word suggestions:
+
+```powershell
 python -m app.cli suggest "add the" --count 5
 ```
 
-To generate a continuation:
+Generate a continuation:
 
-```bash
+```powershell
 python -m app.cli generate "stir in" --count 10
 python -m app.cli generate "add the" --count 10 --sample --seed 42
 ```
 
-Milestone 1 is implemented in `app/core.py` with a built-in starter corpus. The preprocessing step lowercases
-instructions, extracts word tokens, removes punctuation, and discards empty instructions.
+Extend a partial step interactively:
+
+```powershell
+python -m app.cli complete "add the" --count 5 --steps 3
+```
+
+For repeatable automated use, choose the first suggestion on every round:
+
+```powershell
+python -m app.cli complete "add the" --count 5 --steps 3 --choose 1
+```
+
+## Model implementation
+
+Milestone 1 lowercases recipe instructions, extracts words, removes punctuation, and discards empty entries.
+Milestone 2 trains a trigram model with add-alpha smoothing and backs off to shorter contexts when needed.
+Milestone 3 generates deterministic or seeded sampled continuations.
+Milestone 4 exposes the `suggest`, `generate`, and `complete` commands.
 
 ## Settings and secrets
 

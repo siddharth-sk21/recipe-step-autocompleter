@@ -20,7 +20,7 @@ def test_compile_corpus_discards_empty_instructions():
 
 def test_milestone_1_compiles_the_default_recipe_corpus():
     corpus = milestone_1()
-    assert len(corpus) >= 5
+    assert len(corpus) >= 30
     assert all(corpus)
     assert all(token == token.lower() for instruction in corpus for token in instruction)
 
@@ -85,3 +85,19 @@ def test_milestone_3_rejects_invalid_word_limits():
 
     with pytest.raises(ValueError):
         milestone_3("add", max_words=0, model=model)
+
+
+def test_unknown_context_backoffs_to_a_unigram():
+    model = milestone_2(
+        [["add", "salt"], ["mix", "flour"]],
+        n=3,
+        alpha=1.0,
+    )
+
+    probability = model.probability("salt", ["never", "seen"])
+    assert 0 < probability < 1
+
+
+def test_empty_prefix_has_no_generated_words():
+    model = milestone_2([["add", "salt"]], n=2)
+    assert model.generate("", max_words=1)

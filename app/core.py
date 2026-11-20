@@ -18,6 +18,34 @@ DEFAULT_INSTRUCTIONS = (
     "season with salt and pepper",
     "bake until golden brown and serve warm",
     "let the mixture cool before serving",
+    "whisk the eggs with the milk",
+    "pour the batter into the prepared pan",
+    "chop the vegetables into small pieces",
+    "simmer the sauce over low heat",
+    "bring the water to a boil",
+    "reduce the heat and cover the pot",
+    "fold in the cheese gently",
+    "drizzle olive oil over the vegetables",
+    "knead the dough until smooth",
+    "roll out the dough on a floured surface",
+    "cut the cookies with a round cutter",
+    "rest the dough for thirty minutes",
+    "melt the butter in a saucepan",
+    "cream the butter and sugar together",
+    "fold the whipped cream into the mixture",
+    "spread the frosting evenly over the cake",
+    "slice the bread before serving",
+    "toast the bread until golden",
+    "rinse the rice under cold water",
+    "add the stock and bring to a boil",
+    "cook the pasta according to package directions",
+    "drain the pasta and reserve some cooking water",
+    "toss the pasta with the sauce",
+    "marinate the chicken for two hours",
+    "brush the chicken with oil",
+    "grill the chicken until cooked through",
+    "let the meat rest before slicing",
+    "chill the dish for one hour",
 )
 
 TOKEN_RE = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)?")
@@ -63,37 +91,68 @@ class NGramModel:
             for instruction in self.corpus
             for token in instruction
         })
-        self.counts: dict[tuple[str, ...], Counter[str]] = defaultdict(Counter)
-        self.context_counts: Counter[tuple[str, ...]] = Counter()
+        self.counts_by_order: dict[int, dict[tuple[str, ...], Counter[str]]] = {
+            order: defaultdict(Counter)
+            for order in range(1, n + 1)
+        }
+        self.context_counts_by_order: dict[int, Counter[tuple[str, ...]]] = {
+            order: Counter()
+            for order in range(1, n + 1)
+        }
         self._count_ngrams()
 
     def _count_ngrams(self) -> None:
         for instruction in self.corpus:
             padded = ["<s>"] * (self.n - 1) + instruction + ["</s>"]
-            for index in range(self.n - 1, len(padded)):
-                context = tuple(padded[index - self.n + 1:index])
-                next_word = padded[index]
-                self.counts[context][next_word] += 1
-                self.context_counts[context] += 1
+            for index, next_word in enumerate(padded):
+                for order in range(1, self.n + 1):
+                    context_length = order - 1
+                    context_start = index - context_length
+                    if context_start < 0:
+                        continue
+                    context = tuple(padded[context_start:index])
+                    self.counts_by_order[order][context][next_word] += 1
+                    self.context_counts_by_order[order][context] += 1
+
+        self.counts = self.counts_by_order[self.n]
+        self.context_counts = self.context_counts_by_order[self.n]
+
+    def _probability_with_backoff(
+        self,
+        word: str,
+        context: Sequence[str],
+    ) -> tuple[float, tuple[str, ...]]:
+        tokens = list(context)[-(self.n - 1):]
+        candidates: list[tuple[str, ...]] = []
+        for length in range(len(tokens), -1, -1):
+            suffix = tokens[-length:] if length else []
+            order = length + 1
+            if order <= self.n:
+                candidates.append(tuple(suffix))
+
+        for key in candidates:
+            order = len(key) + 1
+            counts = self.counts_by_order[order].get(key)
+            if counts:
+                denominator = self.context_counts_by_order[order].get(key, 0)
+                return (
+                    (counts[word] + self.alpha)
+                    / (denominator + self.alpha * (len(self.vocabulary) + 1)),
+                    key,
+                )
+
+        unigram = self.counts_by_order[1].get((), Counter())
+        denominator = self.context_counts_by_order[1].get((), 0)
+        return (
+            (unigram[word] + self.alpha)
+            / (denominator + self.alpha * (len(self.vocabulary) + 1)),
+            (),
+        )
 
     def probability(self, word: str, context: Sequence[str] = ()) -> float:
         """Return a maximum-likelihood probability with add-alpha smoothing."""
-        context_tokens = list(context)
-        if self.n > 1:
-            context_tokens = context_tokens[-(self.n - 1):]
-            context_tokens = (
-                ["<s>"] * (self.n - 1 - len(context_tokens)) + context_tokens
-            )
-        else:
-            context_tokens = []
-
-        key = tuple(context_tokens)
-        possible_words = len(self.vocabulary) + 1
-        return (
-            self.counts[key][word] + self.alpha
-        ) / (
-            self.context_counts[key] + self.alpha * possible_words
-        )
+        probability, _ = self._probability_with_backoff(word, context)
+        return probability
 
     def predict_next(
         self,

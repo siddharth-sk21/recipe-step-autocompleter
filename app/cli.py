@@ -19,6 +19,12 @@ def main(argv: list[str] | None = None) -> None:
     generate.add_argument("--sample", action="store_true", help="sample instead of choosing the highest-probability word")
     generate.add_argument("--seed", type=int, help="random seed for repeatable sampling")
 
+    complete = sub.add_parser("complete", help="interactively extend a partial recipe step")
+    complete.add_argument("prompt", nargs="+", help="partial recipe step")
+    complete.add_argument("-n", "--count", type=int, default=5, help="number of suggestions")
+    complete.add_argument("-s", "--steps", type=int, default=3, help="number of completion rounds")
+    complete.add_argument("--choose", type=int, help="choose a suggestion automatically")
+
     args = parser.parse_args(argv)
     if args.command == "hello":
         print("Recipe Step Autocompleter is ready. Open README.md for your milestones.")
@@ -42,6 +48,37 @@ def main(argv: list[str] | None = None) -> None:
             sample=args.sample,
             seed=args.seed,
         ))
+    elif args.command == "complete":
+        if args.count < 1:
+            complete.error("--count must be at least 1")
+        if args.steps < 1:
+            complete.error("--steps must be at least 1")
+
+        model = milestone_2()
+        prompt = " ".join(args.prompt)
+        for _ in range(args.steps):
+            predictions = model.predict_next(prompt, limit=args.count)
+            if not predictions:
+                break
+
+            print(f"Current step: {prompt}")
+            for index, (word, probability) in enumerate(predictions, start=1):
+                print(f"{index}. {word} ({probability:.4f})")
+
+            if args.choose is not None:
+                choice = args.choose
+            else:
+                try:
+                    choice = int(input("Choose a word number: ").strip())
+                except (EOFError, ValueError):
+                    break
+
+            if choice < 1 or choice > len(predictions):
+                print("Invalid choice.")
+                break
+            prompt = f"{prompt} {predictions[choice - 1][0]}"
+
+        print(f"Final step: {prompt}")
 
 
 if __name__ == "__main__":

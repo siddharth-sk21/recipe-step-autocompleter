@@ -1,6 +1,8 @@
 """These pass on day one. They check the plumbing so you notice quickly if you break it."""
 import os
 
+import pytest
+
 from app import llm
 from app.storage import Store
 
@@ -40,4 +42,18 @@ def test_the_generate_command_prints_a_continuation(capsys):
     main(["generate", "heat", "--count", "3", "--seed", "42"])
     output = capsys.readouterr().out.strip()
     assert output
+
+
+def test_the_complete_command_accepts_an_automatic_choice(capsys):
+    from app.cli import main
+    main(["complete", "add", "the", "--count", "3", "--steps", "2", "--choose", "1"])
+    output = capsys.readouterr().out
+    assert "Current step:" in output
+    assert "Final step:" in output
+
+
+def test_suggest_rejects_a_zero_count(capsys):
+    from app.cli import main
+    with pytest.raises(SystemExit):
+        main(["suggest", "add", "the", "--count", "0"])
 
