@@ -20,7 +20,7 @@ Tick these off as you go, and commit after each one.
       Hint: Apply n-gram counting and maximum-likelihood estimation from the drill.
 - [x] **3. Create a function to generate recipe step continuations.**
       Hint: Implement the text generation logic, sampling from predicted next words.
-- [ ] **4. Build a CLI for users to input partial steps and get suggestions.**  
+- [x] **4. Build a CLI for users to input partial steps and get suggestions.**
       Hint: Design a simple command-line interface for user input and output.
 
 ## Run it
@@ -33,6 +33,19 @@ pip install -r requirements.txt
 cp .env.example .env        # then choose a model; see the comments inside
 python -m app.cli hello
 pytest
+```
+
+To show ranked next-word suggestions:
+
+```bash
+python -m app.cli suggest "add the" --count 5
+```
+
+To generate a continuation:
+
+```bash
+python -m app.cli generate "stir in" --count 10
+python -m app.cli generate "add the" --count 10 --sample --seed 42
 ```
 
 Milestone 1 is implemented in `app/core.py` with a built-in starter corpus. The preprocessing step lowercases

@@ -26,3 +26,18 @@ def test_the_command_line_runs(capsys):
     main(["hello"])
     assert "is ready" in capsys.readouterr().out
 
+
+def test_the_suggest_command_shows_words(capsys):
+    from app.cli import main
+    main(["suggest", "add", "the", "--count", "3"])
+    output = capsys.readouterr().out
+    assert output
+    assert "\t" in output
+
+
+def test_the_generate_command_prints_a_continuation(capsys):
+    from app.cli import main
+    main(["generate", "heat", "--count", "3", "--seed", "42"])
+    output = capsys.readouterr().out.strip()
+    assert output
+

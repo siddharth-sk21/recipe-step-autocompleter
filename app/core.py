@@ -183,3 +183,10 @@ def milestone_3(
         sample=sample,
         seed=seed,
     )
+
+
+def milestone_4(argv: list[str] | None = None) -> None:
+    """Run the command-line interface."""
+    from .cli import main
+
+    main(argv)
