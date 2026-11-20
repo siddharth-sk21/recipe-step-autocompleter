@@ -16,7 +16,7 @@ Tick these off as you go, and commit after each one.
 
 - [x] **1. Compile a corpus of cooking recipe instructions.**
       Hint: Use text preprocessing techniques to clean and prepare your recipe data.
-- [ ] **2. Implement n-gram counting and maximum-likelihood probabilities with smoothing.**  
+- [x] **2. Implement n-gram counting and maximum-likelihood probabilities with smoothing.**
       Hint: Apply n-gram counting and maximum-likelihood estimation from the drill.
 - [ ] **3. Create a function to generate recipe step continuations.**  
       Hint: Implement the text generation logic, sampling from predicted next words.

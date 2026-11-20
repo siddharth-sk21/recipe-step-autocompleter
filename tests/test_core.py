@@ -1,4 +1,12 @@
-from app.core import compile_corpus, milestone_1, tokenize
+import pytest
+
+from app.core import (
+    NGramModel,
+    compile_corpus,
+    milestone_1,
+    milestone_2,
+    tokenize,
+)
 
 
 def test_tokenize_normalizes_case_and_punctuation():
@@ -14,3 +22,29 @@ def test_milestone_1_compiles_the_default_recipe_corpus():
     assert len(corpus) >= 5
     assert all(corpus)
     assert all(token == token.lower() for instruction in corpus for token in instruction)
+
+
+def test_milestone_2_counts_bigrams_and_smooths_probabilities():
+    model = NGramModel([["add", "salt"], ["add", "pepper"]], n=2, alpha=1.0)
+
+    assert model.counts[("<s>",)][ "add" ] == 2
+    assert model.counts[("add",)][ "salt" ] == 1
+    assert model.counts[("add",)][ "pepper" ] == 1
+
+    total = sum(model.probability(word, ["add"]) for word in model.vocabulary)
+    assert total < 1.0
+    assert model.probability("unknown", ["add"]) > 0
+
+
+def test_milestone_2_returns_ranked_predictions():
+    model = milestone_2([["add", "salt"], ["add", "salt"], ["add", "pepper"]], n=2)
+    predictions = model.predict_next("add", limit=2)
+
+    assert predictions[0][0] == "salt"
+    assert predictions[0][1] > predictions[1][1]
+
+
+@pytest.mark.parametrize("kwargs", [{"n": 0}, {"alpha": 0}, {"alpha": -1}])
+def test_milestone_2_rejects_invalid_model_settings(kwargs):
+    with pytest.raises(ValueError):
+        NGramModel([["add", "salt"]], **kwargs)
